@@ -23,17 +23,26 @@
         </div>
       </NuxtLink>
 
-      <!-- Search Bar Desktop & Mobile Integration -->
+      <!-- Search Bar -->
       <div class="relative flex-1 max-w-xs sm:max-w-md mx-2 sm:mx-6 group">
         <input 
           v-model="searchQuery"
           type="text" 
           placeholder="Cari add-on..." 
-          class="w-full bg-[#11192e] text-xs sm:text-sm text-slate-200 placeholder-slate-500 rounded-xl pl-9 pr-3 sm:px-11 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/80 border border-slate-700/60 transition-all duration-300"
+          class="w-full bg-[#11192e] text-xs sm:text-sm text-slate-200 placeholder-slate-500 rounded-xl pl-9 pr-8 sm:px-11 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/80 border border-slate-700/60 transition-all duration-300"
         />
         <svg class="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-2.5 sm:top-3 text-slate-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
+
+        <!-- Tombol Clear Search jika sedang mengetik -->
+        <button 
+          v-if="searchQuery" 
+          @click="searchQuery = ''"
+          class="absolute right-2.5 top-2.5 sm:top-3 text-slate-400 hover:text-white transition"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
       </div>
 
       <!-- Right Action Badge -->
@@ -49,15 +58,15 @@
 
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
 
-      <!-- HERO BANNER SECTION (FEATURED ADD-ON) -->
-      <section v-if="featuredAddon" class="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700/60 bg-gradient-to-br from-[#0e1628] via-[#0b1222] to-[#070c18] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-12 shadow-2xl shadow-blue-950/50 group">
+      <!-- HERO BANNER SECTION (HANYA TAMPIL SAAT TIDAK MENGCARI) -->
+      <section v-if="featuredAddon && !isSearching" class="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700/60 bg-gradient-to-br from-[#0e1628] via-[#0b1222] to-[#070c18] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-12 shadow-2xl shadow-blue-950/50 group">
         
         <!-- Shimmer Light Overlay -->
         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
 
         <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-center">
           
-          <!-- Banner Preview Image (Tampil di atas untuk layar HP) -->
+          <!-- Banner Preview Image -->
           <div class="lg:col-span-5 order-1 lg:order-2 flex justify-center">
             <NuxtLink :to="`/addon/${featuredAddon.id}`" class="w-full relative group/img rounded-xl sm:rounded-2xl p-0.5 sm:p-1 bg-gradient-to-b from-blue-500/40 via-cyan-500/20 to-transparent shadow-xl cursor-pointer block">
               <div class="relative rounded-lg sm:rounded-xl overflow-hidden bg-slate-900 border border-slate-700 aspect-video sm:aspect-auto">
@@ -88,7 +97,7 @@
               </span>
             </div>
 
-            <!-- Title diklik langsung menuju detail -->
+            <!-- Title -->
             <NuxtLink :to="`/addon/${featuredAddon.id}`" class="block group/title">
               <h1 class="text-xl sm:text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight group-hover/title:text-cyan-300 transition duration-300">
                 {{ featuredAddon.title }}
@@ -128,8 +137,8 @@
         </div>
       </section>
 
-      <!-- CATEGORY TABS FILTER -->
-      <div class="flex items-center space-x-2 sm:space-x-3 overflow-x-auto pb-3 sm:pb-4 scrollbar-none mb-4 sm:mb-8">
+      <!-- CATEGORY TABS FILTER (HANYA TAMPIL SAAT TIDAK MENGCARI) -->
+      <div v-if="!isSearching" class="flex items-center space-x-2 sm:space-x-3 overflow-x-auto pb-3 sm:pb-4 scrollbar-none mb-4 sm:mb-8">
         <button 
           v-for="cat in categories" 
           :key="cat"
@@ -145,9 +154,25 @@
         </button>
       </div>
 
+      <!-- SEARCH RESULT HEADER (HANYA TAMPIL SAAT MENGCARI) -->
+      <div v-if="isSearching" class="flex items-center justify-between mb-6 pb-3 border-b border-slate-800">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-white">
+            Hasil Pencarian: <span class="text-blue-400">"{{ searchQuery }}"</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Ditemukan {{ filteredAddons.length }} add-on</p>
+        </div>
+        <button 
+          @click="searchQuery = ''" 
+          class="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700"
+        >
+          Tampilkan Semua
+        </button>
+      </div>
+
       <!-- MAIN CATALOG / ADDON GRID -->
       <section>
-        <div class="flex items-center justify-between mb-4 sm:mb-6">
+        <div v-if="!isSearching" class="flex items-center justify-between mb-4 sm:mb-6">
           <div class="flex items-center space-x-2 sm:space-x-3">
             <div class="w-2 h-5 sm:w-2.5 sm:h-7 bg-gradient-to-b from-blue-400 to-cyan-500 rounded-full"></div>
             <h2 class="text-lg sm:text-2xl font-black text-white tracking-wide">Katalog Add-On</h2>
@@ -155,8 +180,8 @@
           <span class="text-[10px] sm:text-xs text-slate-400 font-medium">Total {{ filteredAddons.length }}</span>
         </div>
 
-        <!-- Addon Grid Card Responsive (2 Kolom di Mobile, 4 Kolom di Desktop) -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+        <!-- Addon Grid Card -->
+        <div v-if="filteredAddons.length > 0" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           <div 
             v-for="item in filteredAddons" 
             :key="item.id"
@@ -216,6 +241,13 @@
           </div>
         </div>
 
+        <!-- Empty Search State jika pencarian tidak ditemukan -->
+        <div v-else class="text-center py-16 sm:py-24 bg-[#0d1424]/60 rounded-2xl border border-slate-800 my-4">
+          <p class="text-slate-300 text-sm sm:text-base font-semibold">Tidak ada add-on yang cocok dengan kata kunci "{{ searchQuery }}"</p>
+          <button @click="searchQuery = ''" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition">
+            Lihat Semua Add-On
+          </button>
+        </div>
       </section>
 
       <!-- FEATURE HIGHLIGHTS FOOTER -->
@@ -263,6 +295,9 @@ const searchQuery = ref('');
 const selectedCategory = ref('Semua');
 
 const categories = ['Semua', 'Add-Ons', 'World', 'Texture Packs', 'Skin Packs', 'Mash-ups'];
+
+// Cek apakah user sedang mengetik di kolom pencarian
+const isSearching = computed(() => searchQuery.value.trim().length > 0);
 
 const featuredAddon = computed(() => addonsData.find(item => item.isFeatured) || addonsData[0]);
 
