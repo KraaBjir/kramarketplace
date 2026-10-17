@@ -180,8 +180,8 @@ const isSubmitting = ref(false);
 const GOOGLE_CLIENT_ID = "324096660255-rdo9ajg2fm1u05l9p3nj0sfdi8dgbh88.apps.googleusercontent.com";
 
 // KONFIGURASI SUPABASE (Ganti dengan URL & Anon Key dari Supabase Anda)
-const SUPABASE_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co";
-const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://lulqcbwyuhrwonnkxhzp.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bHFjYnd5dWhyd29ubmt4aHpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTA1ODcsImV4cCI6MjA3NTc2NjU4N30.FjkYF7uqaEyQxwwIWPw6Sjw-mSxOd6vX9SoGjlSa2_I";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Decode JWT Token dari Google
