@@ -74,7 +74,7 @@
           </div>
         </div>
 
-        <!-- SECTION KOMENTAR -->
+        <!-- SECTION KOMENTAR ONLINE (REALTIME) -->
         <div class="bg-[#0f172a] border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl space-y-6">
           <div class="flex items-center justify-between border-b border-slate-800 pb-4">
             <h2 class="text-lg sm:text-xl font-bold text-white flex items-center space-x-2">
@@ -107,10 +107,10 @@
               <div class="flex justify-end">
                 <button 
                   @click="addComment" 
-                  :disabled="!newComment.trim()"
+                  :disabled="!newComment.trim() || isSubmitting"
                   class="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold text-xs sm:text-sm rounded-xl transition shadow-md"
                 >
-                  Kirim Komentar
+                  {{ isSubmitting ? 'Mengirim...' : 'Kirim Komentar' }}
                 </button>
               </div>
             </div>
@@ -122,25 +122,24 @@
               </p>
               
               <div class="flex justify-center">
-                <!-- Google Login Button Container -->
                 <div id="google-login-btn"></div>
               </div>
             </div>
           </div>
 
-          <!-- DAFTAR KOMENTAR -->
+          <!-- DAFTAR KOMENTAR DATABASE ONLINE -->
           <div class="space-y-4 pt-2">
             <div 
               v-for="(item, index) in comments" 
-              :key="index"
+              :key="item.id || index"
               class="bg-[#060913]/70 border border-slate-800/80 rounded-xl p-3.5 sm:p-4 space-y-2"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
-                  <img :src="item.userPhoto" :alt="item.userName" class="w-7 h-7 rounded-full border border-slate-700" />
+                  <img :src="item.user_photo" :alt="item.user_name" class="w-7 h-7 rounded-full border border-slate-700" />
                   <div>
-                    <h4 class="text-xs sm:text-sm font-bold text-slate-200">{{ item.userName }}</h4>
-                    <span class="text-[10px] text-slate-500">{{ item.date }}</span>
+                    <h4 class="text-xs sm:text-sm font-bold text-slate-200">{{ item.user_name }}</h4>
+                    <span class="text-[10px] text-slate-500">{{ formatDate(item.created_at) }}</span>
                   </div>
                 </div>
               </div>
@@ -148,7 +147,7 @@
             </div>
 
             <div v-if="comments.length === 0" class="text-center py-6 text-slate-500 text-xs">
-              Belum ada komentar. Jadilah yang pertama berkomentar!
+              Belum ada komentar online. Jadilah yang pertama berkomentar!
             </div>
           </div>
 
@@ -167,6 +166,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
+import { createClient } from '@supabase/supabase-js';
 import { addonsData } from '~/data/addons.js';
 
 const route = useRoute();
@@ -175,8 +175,14 @@ const addon = addonsData.find(item => item.id === route.params.id);
 const user = ref(null);
 const newComment = ref('');
 const comments = ref([]);
+const isSubmitting = ref(false);
 
 const GOOGLE_CLIENT_ID = "324096660255-rdo9ajg2fm1u05l9p3nj0sfdi8dgbh88.apps.googleusercontent.com";
+
+// KONFIGURASI SUPABASE (Ganti dengan URL & Anon Key dari Supabase Anda)
+const SUPABASE_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co";
+const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Decode JWT Token dari Google
 const decodeJwt = (token) => {
@@ -226,33 +232,55 @@ const initGoogleLogin = () => {
   }
 };
 
-// Memuat Komentar dari LocalStorage per Addon ID
-const loadComments = () => {
-  if (process.client && addon) {
-    const saved = localStorage.getItem(`comments_${addon.id}`);
-    if (saved) {
-      comments.value = JSON.parse(saved);
-    }
+// Ambil data komentar dari Supabase Online Database
+const loadComments = async () => {
+  if (!addon) return;
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('addon_id', addon.id)
+    .order('created_at', { ascending: false });
+
+  if (!error && data) {
+    comments.value = data;
   }
 };
 
-// Tambahkan Komentar
-const addComment = () => {
-  if (!newComment.value.trim() || !user.value || !addon) return;
+// Kirim Komentar Baru ke Database
+const addComment = async () => {
+  if (!newComment.value.trim() || !user.value || !addon || isSubmitting.value) return;
 
-  const commentObj = {
-    userName: user.value.name,
-    userPhoto: user.value.picture,
-    text: newComment.value.trim(),
-    date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  };
+  isSubmitting.value = true;
 
-  comments.value.unshift(commentObj);
-  newComment.value = '';
+  const { error } = await supabase
+    .from('comments')
+    .insert([
+      {
+        addon_id: addon.id,
+        user_name: user.value.name,
+        user_photo: user.value.picture,
+        text: newComment.value.trim()
+      }
+    ]);
 
-  if (process.client) {
-    localStorage.setItem(`comments_${addon.id}`, JSON.stringify(comments.value));
+  if (!error) {
+    newComment.value = '';
+    await loadComments(); // Reload komentar terbaru
   }
+
+  isSubmitting.value = false;
+};
+
+// Format Tanggal
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // Logout User
@@ -267,7 +295,6 @@ const logout = () => {
 };
 
 onMounted(() => {
-  // Cek Session User
   if (process.client) {
     const savedUser = localStorage.getItem('kraadev_user');
     if (savedUser) {
@@ -277,7 +304,7 @@ onMounted(() => {
 
   loadComments();
 
-  // Load Google Identity Services Script
+  // Load Google SDK
   if (process.client && !window.google) {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
