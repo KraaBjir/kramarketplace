@@ -1,11 +1,11 @@
 <template>
   <div class="min-h-screen bg-[#060913] text-slate-100 font-sans selection:bg-blue-500 selection:text-white pb-20 relative overflow-hidden">
     
-    <!-- EFEK ANIMASI BACKGROUND GLOW -->
+    <!-- BACKGROUND GLOW ANIMATIONS -->
     <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-72 sm:w-[32rem] h-72 sm:h-[32rem] bg-blue-600/20 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none animate-pulse"></div>
     <div class="absolute top-1/3 -right-20 w-80 sm:w-[35rem] h-80 sm:h-[35rem] bg-cyan-500/15 rounded-full blur-[110px] sm:blur-[160px] pointer-events-none animate-pulse"></div>
 
-    <!-- GERBANG LOGIN (Pengguna Wajib Login Sebelum Bisa Melihat Isi Web) -->
+    <!-- HALAMAN GERBANG LOGIN -->
     <div v-if="!user" class="min-h-screen flex items-center justify-center px-4 relative z-50">
       <div class="max-w-md w-full bg-[#0f172a]/90 backdrop-blur-2xl border border-blue-500/30 rounded-3xl p-8 shadow-2xl shadow-blue-950/80 text-center space-y-6 transition-all duration-500">
         <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center font-black text-3xl text-white shadow-lg shadow-blue-500/40 mx-auto animate-bounce">
@@ -13,20 +13,19 @@
         </div>
         <div class="space-y-2">
           <h1 class="text-3xl font-black tracking-wider text-white">Kraa<span class="text-blue-500">Dev</span></h1>
-          <p class="text-xs text-slate-400">Silakan login dengan akun Google kamu untuk mengakses marketplace add-on Minecraft gratis.</p>
+          <p class="text-xs text-slate-400">Masuk dengan akun Google kamu untuk menjelajahi marketplace add-on.</p>
         </div>
 
-        <!-- Tombol Google Login -->
         <div class="pt-4 flex justify-center">
           <div id="google-login-gate-btn"></div>
         </div>
       </div>
     </div>
 
-    <!-- TAMPILAN UTAMA MARKETPLACE (Tampil Setelah Pengguna Login) -->
+    <!-- TAMPILAN UTAMA MARKETPLACE -->
     <div v-else class="transition-opacity duration-700">
       
-      <!-- Header / Navbar -->
+      <!-- Navbar / Header -->
       <header class="border-b border-slate-800/80 bg-[#0a0f1d]/90 backdrop-blur-xl sticky top-0 z-50 px-3 sm:px-6 lg:px-10 py-3 flex items-center justify-between shadow-2xl">
         <NuxtLink to="/" class="flex items-center space-x-2.5 group">
           <div class="relative">
@@ -56,10 +55,17 @@
           </svg>
         </div>
 
-        <!-- Profil Pengguna & Logout -->
+        <!-- Profil Pengguna & Fitur Switch Account -->
         <div class="flex items-center space-x-3">
-          <img :src="user.picture" :alt="user.name" class="w-8 h-8 rounded-full border border-blue-400 shadow-md" />
-          <button @click="logout" class="text-xs text-red-400 hover:underline hidden sm:inline">Logout</button>
+          <button @click="showEditModal = true" class="flex items-center space-x-2 bg-[#0d1527] hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl transition">
+            <img :src="user.picture" :alt="user.name" class="w-7 h-7 rounded-full border border-blue-400 object-cover" />
+            <span class="text-xs text-slate-200 font-semibold hidden sm:inline">{{ user.name }}</span>
+          </button>
+          
+          <button @click="switchAccount" title="Ganti / Pindah Akun" class="p-2 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl transition border border-slate-700 text-xs flex items-center space-x-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span class="hidden sm:inline">Ganti Akun</span>
+          </button>
         </div>
       </header>
 
@@ -96,6 +102,7 @@
                 <a 
                   :href="featuredAddon.downloadLink" 
                   target="_blank"
+                  @click="handleDownload(featuredAddon.id)"
                   class="w-full sm:w-auto text-center justify-center px-6 py-3 sm:px-8 sm:py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl flex items-center space-x-2 transition duration-300 shadow-lg shadow-blue-600/40 text-xs sm:text-sm"
                 >
                   <span>Download</span>
@@ -139,6 +146,7 @@
                 <a 
                   :href="item.downloadLink" 
                   target="_blank"
+                  @click="handleDownload(item.id)"
                   class="w-full text-center py-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-[10px] sm:text-xs rounded-lg transition"
                 >
                   Download
@@ -150,6 +158,46 @@
         </section>
 
       </main>
+
+      <!-- MODAL EDIT PROFIL -->
+      <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-[#0f172a] border border-slate-700 rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl relative">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-lg font-bold text-white">Edit Profil Saya</h3>
+            <button @click="showEditModal = false" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+
+          <div class="space-y-4">
+            <div class="flex flex-col items-center space-y-3">
+              <img :src="editPhoto || user.picture" class="w-20 h-20 rounded-full border-2 border-blue-500 object-cover shadow-lg" />
+              <label class="cursor-pointer text-xs bg-blue-600/30 border border-blue-500 text-blue-300 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-xl transition">
+                Ganti Foto Profil
+                <input type="file" accept="image/*" class="hidden" @change="onPhotoSelected" />
+              </label>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 font-semibold block mb-1">Nama Tampilan</label>
+              <input 
+                v-model="editName" 
+                type="text" 
+                class="w-full bg-[#060913] text-sm text-slate-200 border border-slate-700 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 font-semibold block mb-1">Email (Tetap)</label>
+              <input :value="user.email" disabled class="w-full bg-[#060913]/50 text-sm text-slate-500 border border-slate-800 rounded-xl p-3" />
+            </div>
+          </div>
+
+          <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+            <button @click="showEditModal = false" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Batal</button>
+            <button @click="saveProfile" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition">Simpan Perubahan</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -157,13 +205,19 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { createClient } from '@supabase/supabase-js';
 import { addonsData } from '~/data/addons.js';
 
 const searchQuery = ref('');
 const user = ref(null);
+const showEditModal = ref(false);
+const editName = ref('');
+const editPhoto = ref('');
 
-// GOOGLE CLIENT ID TERISI LANGSUNG
 const GOOGLE_CLIENT_ID = "324096660255-rdo9ajg2fm1u05l9p3nj0sfdi8dgbh88.apps.googleusercontent.com";
+const SUPABASE_URL = "https://lulqcbwyuhrwonnkxhzp.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bHFjYnd5dWhyd29ubmt4aHpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTA1ODcsImV4cCI6MjA3NTc2NjU4N30.FjkYF7uqaEyQxwwIWPw6Sjw-mSxOd6vX9SoGjlSa2_I";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const isSearching = computed(() => searchQuery.value.trim().length > 0);
 const featuredAddon = computed(() => addonsData.find(item => item.isFeatured) || addonsData[0]);
@@ -184,17 +238,37 @@ const decodeJwt = (token) => {
   }
 };
 
-const handleCredentialResponse = (response) => {
+const syncUserToSupabase = async (userData) => {
+  const { data } = await supabase.from('users').select('*').eq('email', userData.email).single();
+  if (data) {
+    user.value = {
+      name: data.name,
+      email: data.email,
+      picture: data.picture
+    };
+  } else {
+    await supabase.from('users').insert([{
+      email: userData.email,
+      name: userData.name,
+      picture: userData.picture
+    }]);
+    user.value = userData;
+  }
+  editName.value = user.value.name;
+  editPhoto.value = user.value.picture;
+  if (process.client) {
+    localStorage.setItem('kraadev_user', JSON.stringify(user.value));
+  }
+};
+
+const handleCredentialResponse = async (response) => {
   const userData = decodeJwt(response.credential);
   if (userData) {
-    user.value = {
+    await syncUserToSupabase({
       name: userData.name,
       email: userData.email,
       picture: userData.picture
-    };
-    if (process.client) {
-      localStorage.setItem('kraadev_user', JSON.stringify(user.value));
-    }
+    });
   }
 };
 
@@ -218,7 +292,10 @@ const initGoogleLoginGate = () => {
   }
 };
 
-const logout = () => {
+const switchAccount = () => {
+  if (typeof window !== 'undefined' && window.google) {
+    window.google.accounts.id.disableAutoSelect();
+  }
   user.value = null;
   if (process.client) {
     localStorage.removeItem('kraadev_user');
@@ -228,11 +305,52 @@ const logout = () => {
   });
 };
 
+const onPhotoSelected = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    editPhoto.value = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+const saveProfile = async () => {
+  if (!user.value) return;
+  const updatedUser = {
+    ...user.value,
+    name: editName.value.trim(),
+    picture: editPhoto.value
+  };
+
+  await supabase.from('users').upsert({
+    email: updatedUser.email,
+    name: updatedUser.name,
+    picture: updatedUser.picture,
+    updated_at: new Date().toISOString()
+  });
+
+  user.value = updatedUser;
+  if (process.client) {
+    localStorage.setItem('kraadev_user', JSON.stringify(updatedUser));
+  }
+  showEditModal.value = false;
+};
+
+const handleDownload = async (addonId) => {
+  if (!user.value) return;
+  await supabase.from('addon_downloads').insert([
+    { addon_id: addonId, user_email: user.value.email }
+  ]);
+};
+
 onMounted(() => {
   if (process.client) {
     const savedUser = localStorage.getItem('kraadev_user');
     if (savedUser) {
       user.value = JSON.parse(savedUser);
+      editName.value = user.value.name;
+      editPhoto.value = user.value.picture;
     }
   }
 

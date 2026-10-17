@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[#060913] text-slate-100 font-sans pb-20 relative">
     
-    <!-- Tombol Kembali -->
+    <!-- Navigation Back -->
     <div class="max-w-5xl mx-auto px-4 pt-8">
       <NuxtLink to="/" class="inline-flex items-center space-x-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition mb-6">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -23,12 +23,20 @@
             <div class="lg:col-span-6 space-y-4">
               <h1 class="text-3xl font-black text-white">{{ addon.title }}</h1>
               <p class="text-xs text-slate-400">Dibuat oleh <strong class="text-blue-400">{{ addon.creator }}</strong></p>
+              
+              <!-- JUMLAH AKUN YANG SUDAH DOWNLOAD (Hitung 1 Kali per Akun) -->
+              <div class="inline-flex items-center space-x-2 bg-blue-950/60 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs text-blue-300">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span><strong>{{ downloadCount }}</strong> Akun telah mendownload</span>
+              </div>
+
               <p class="text-slate-300 text-sm leading-relaxed">{{ addon.description }}</p>
 
               <div class="pt-4">
                 <a 
                   :href="addon.downloadLink" 
                   target="_blank"
+                  @click="trackDownload"
                   class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold rounded-xl flex items-center justify-center space-x-2 transition shadow-xl hover:scale-[1.01] active:scale-95"
                 >
                   <span>Download Add-On</span>
@@ -73,12 +81,15 @@
                 :key="item.id"
                 class="bg-[#060913]/80 border border-slate-800 rounded-2xl p-4 space-y-2 hover:border-blue-500/40 transition-all duration-300 transform hover:-translate-y-1"
               >
-                <div class="flex items-center space-x-3">
-                  <img :src="item.user_photo" :alt="item.user_name" class="w-8 h-8 rounded-full border border-blue-400" />
-                  <div>
-                    <h4 class="text-sm font-bold text-slate-200">{{ item.user_name }}</h4>
-                    <span class="text-[10px] text-slate-500">{{ formatDate(item.created_at) }}</span>
-                  </div>
+                <div class="flex items-center justify-between">
+                  <!-- Klik Profil Pengguna untuk Melihat Modal Profil -->
+                  <button @click="viewUserProfile(item.user_name, item.user_photo)" class="flex items-center space-x-3 text-left hover:opacity-80 transition">
+                    <img :src="item.user_photo" :alt="item.user_name" class="w-8 h-8 rounded-full border border-blue-400 object-cover" />
+                    <div>
+                      <h4 class="text-sm font-bold text-slate-200">{{ item.user_name }}</h4>
+                      <span class="text-[10px] text-slate-500">{{ formatDate(item.created_at) }}</span>
+                    </div>
+                  </button>
                 </div>
                 <p class="text-sm text-slate-300 pl-11 leading-relaxed">{{ item.text }}</p>
               </div>
@@ -91,6 +102,23 @@
 
         </div>
 
+      </div>
+    </div>
+
+    <!-- MODAL PROFIL PUBLIK (Bisa Dilihat Semua Orang) -->
+    <div v-if="selectedProfile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-[#0f172a] border border-slate-700 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative">
+        <button @click="selectedProfile = null" class="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+        
+        <img :src="selectedProfile.photo" class="w-24 h-24 rounded-full border-2 border-blue-500 mx-auto object-cover shadow-lg" />
+        <div>
+          <h3 class="text-lg font-bold text-white">{{ selectedProfile.name }}</h3>
+          <p class="text-xs text-blue-400 mt-0.5">Pengguna Terverifikasi KraaDev</p>
+        </div>
+
+        <button @click="selectedProfile = null" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition">
+          Tutup
+        </button>
       </div>
     </div>
 
@@ -109,9 +137,10 @@ const addon = addonsData.find(item => item.id === route.params.id);
 const user = ref(null);
 const newComment = ref('');
 const comments = ref([]);
+const downloadCount = ref(0);
 const isSubmitting = ref(false);
+const selectedProfile = ref(null);
 
-// SUPABASE URL & KEY TERISI LANGSUNG
 const SUPABASE_URL = "https://lulqcbwyuhrwonnkxhzp.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bHFjYnd5dWhyd29ubmt4aHpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTA1ODcsImV4cCI6MjA3NTc2NjU4N30.FjkYF7uqaEyQxwwIWPw6Sjw-mSxOd6vX9SoGjlSa2_I";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -127,6 +156,26 @@ const loadComments = async () => {
   if (!error && data) {
     comments.value = data;
   }
+};
+
+const loadDownloadCount = async () => {
+  if (!addon) return;
+  const { count, error } = await supabase
+    .from('addon_downloads')
+    .select('*', { count: 'exact', head: true })
+    .eq('addon_id', addon.id);
+
+  if (!error) {
+    downloadCount.value = count || 0;
+  }
+};
+
+const trackDownload = async () => {
+  if (!user.value || !addon) return;
+  await supabase.from('addon_downloads').insert([
+    { addon_id: addon.id, user_email: user.value.email }
+  ]);
+  await loadDownloadCount();
 };
 
 const addComment = async () => {
@@ -153,6 +202,10 @@ const addComment = async () => {
   isSubmitting.value = false;
 };
 
+const viewUserProfile = (name, photo) => {
+  selectedProfile.value = { name, photo };
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('id-ID', {
@@ -171,11 +224,11 @@ onMounted(() => {
   }
 
   loadComments();
+  loadDownloadCount();
 });
 </script>
 
 <style scoped>
-/* CSS Animasi Transisi Masuk & Keluar Komentar */
 .list-enter-active,
 .list-leave-active {
   transition: all 0.5s ease;
