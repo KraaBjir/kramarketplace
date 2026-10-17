@@ -24,7 +24,7 @@
               <h1 class="text-3xl font-black text-white">{{ addon.title }}</h1>
               <p class="text-xs text-slate-400">Dibuat oleh <strong class="text-blue-400">{{ addon.creator }}</strong></p>
               
-              <!-- JUMLAH AKUN YANG SUDAH DOWNLOAD (Hitung 1 Kali per Akun) -->
+              <!-- JUMLAH AKUN YANG SUDAH DOWNLOAD -->
               <div class="inline-flex items-center space-x-2 bg-blue-950/60 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs text-blue-300">
                 <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 <span><strong>{{ downloadCount }}</strong> Akun telah mendownload</span>
@@ -83,10 +83,10 @@
               >
                 <div class="flex items-center justify-between">
                   <!-- Klik Profil Pengguna untuk Melihat Modal Profil -->
-                  <button @click="viewUserProfile(item.user_name, item.user_photo)" class="flex items-center space-x-3 text-left hover:opacity-80 transition">
-                    <img :src="item.user_photo" :alt="item.user_name" class="w-8 h-8 rounded-full border border-blue-400 object-cover" />
+                  <button @click="viewUserProfile(getCommentUser(item).name, getCommentUser(item).picture)" class="flex items-center space-x-3 text-left hover:opacity-80 transition">
+                    <img :src="getCommentUser(item).picture" :alt="getCommentUser(item).name" class="w-8 h-8 rounded-full border border-blue-400 object-cover" />
                     <div>
-                      <h4 class="text-sm font-bold text-slate-200">{{ item.user_name }}</h4>
+                      <h4 class="text-sm font-bold text-slate-200">{{ getCommentUser(item).name }}</h4>
                       <span class="text-[10px] text-slate-500">{{ formatDate(item.created_at) }}</span>
                     </div>
                   </button>
@@ -105,7 +105,7 @@
       </div>
     </div>
 
-    <!-- MODAL PROFIL PUBLIK (Bisa Dilihat Semua Orang) -->
+    <!-- MODAL PROFIL PUBLIK -->
     <div v-if="selectedProfile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div class="bg-[#0f172a] border border-slate-700 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative">
         <button @click="selectedProfile = null" class="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
@@ -137,6 +137,7 @@ const addon = addonsData.find(item => item.id === route.params.id);
 const user = ref(null);
 const newComment = ref('');
 const comments = ref([]);
+const usersMap = ref({});
 const downloadCount = ref(0);
 const isSubmitting = ref(false);
 const selectedProfile = ref(null);
@@ -145,8 +146,22 @@ const SUPABASE_URL = "https://lulqcbwyuhrwonnkxhzp.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bHFjYnd5dWhyd29ubmt4aHpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTA1ODcsImV4cCI6MjA3NTc2NjU4N30.FjkYF7uqaEyQxwwIWPw6Sjw-mSxOd6vX9SoGjlSa2_I";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Memuat data profil pengguna dari tabel users untuk mencocokkan komentar
+const loadUsers = async () => {
+  const { data } = await supabase.from('users').select('*');
+  if (data) {
+    const map = {};
+    data.forEach(u => {
+      map[u.email] = u;
+    });
+    usersMap.value = map;
+  }
+};
+
 const loadComments = async () => {
   if (!addon) return;
+  await loadUsers(); // Load profil user terbaru
+
   const { data, error } = await supabase
     .from('comments')
     .select('*')
@@ -156,6 +171,20 @@ const loadComments = async () => {
   if (!error && data) {
     comments.value = data;
   }
+};
+
+// Mengambil nama dan foto profil terbaru berdasarkan user_email (Fallback ke data lama jika user_email belum ada)
+const getCommentUser = (item) => {
+  if (item.user_email && usersMap.value[item.user_email]) {
+    return {
+      name: usersMap.value[item.user_email].name,
+      picture: usersMap.value[item.user_email].picture
+    };
+  }
+  return {
+    name: item.user_name,
+    picture: item.user_photo
+  };
 };
 
 const loadDownloadCount = async () => {
@@ -188,6 +217,7 @@ const addComment = async () => {
     .insert([
       {
         addon_id: addon.id,
+        user_email: user.value.email, // Menyimpan email acuan
         user_name: user.value.name,
         user_photo: user.value.picture,
         text: newComment.value.trim()
