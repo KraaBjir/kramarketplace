@@ -1,11 +1,11 @@
 <template>
   <div class="min-h-screen bg-[#060913] text-slate-100 font-sans selection:bg-blue-500 selection:text-white pb-20 relative overflow-hidden">
     
-    <!-- ANIMATED AMBIENT BACKGROUND GLOWS -->
+    <!-- BACKGROUND GLOW ANIMATIONS -->
     <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-72 sm:w-[32rem] h-72 sm:h-[32rem] bg-blue-600/20 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none animate-pulse"></div>
     <div class="absolute top-1/3 -right-20 w-80 sm:w-[35rem] h-80 sm:h-[35rem] bg-cyan-500/15 rounded-full blur-[110px] sm:blur-[160px] pointer-events-none animate-pulse"></div>
 
-    <!-- HALAMAN GERBANG LOGIN (WAJIB LOGIN TERLEBIH DAHULU) -->
+    <!-- GERBANG LOGIN -->
     <div v-if="!user" class="min-h-screen flex items-center justify-center px-4 relative z-50">
       <div class="max-w-md w-full bg-[#0f172a]/90 backdrop-blur-2xl border border-blue-500/30 rounded-3xl p-8 shadow-2xl shadow-blue-950/80 text-center space-y-6 transition-all duration-500">
         <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center font-black text-3xl text-white shadow-lg shadow-blue-500/40 mx-auto animate-bounce">
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- TAMPILAN UTAMA MARKETPLACE MEWAH & FULL ANIMASI -->
+    <!-- TAMPILAN UTAMA MARKETPLACE -->
     <div v-else class="transition-opacity duration-700">
       
       <!-- Header / Navbar -->
@@ -58,7 +58,7 @@
           </button>
         </div>
 
-        <!-- Right Profile & Account Switch -->
+        <!-- Profil & Ganti Akun -->
         <div class="flex items-center space-x-3">
           <button @click="showEditModal = true" class="flex items-center space-x-2 bg-[#0d1527] hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl transition shadow-md">
             <img :src="user.picture" :alt="user.name" class="w-7 h-7 rounded-full border border-blue-400 object-cover" />
@@ -74,9 +74,8 @@
 
       <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
 
-        <!-- HERO BANNER KUSTOM MEWAH -->
+        <!-- HERO BANNER KUSTOM -->
         <section v-if="featuredAddon && !isSearching" class="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700/60 bg-gradient-to-br from-[#0e1628] via-[#0b1222] to-[#070c18] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-12 shadow-2xl shadow-blue-950/50 group">
-          
           <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-center">
             
             <div class="lg:col-span-5 order-1 lg:order-2 flex justify-center">
@@ -88,7 +87,7 @@
                     class="w-full h-44 sm:h-64 lg:h-72 object-cover group-hover/img:scale-105 transition duration-500 ease-out"
                   />
                   <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
-                  <span class="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-slate-950/90 backdrop-blur border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-md sm:rounded-lg">
+                  <span class="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-slate-950/90 backdrop-blur border border-cyan-500/40 text-cyan-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-md sm:rounded-lg">
                     Bedrock Add-On
                   </span>
                 </div>
@@ -103,9 +102,6 @@
                 <span class="px-3 py-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-semibold rounded-full flex items-center space-x-1">
                   <span>🔥 Populer</span>
                 </span>
-                <span class="px-3 py-1 bg-slate-800/80 text-slate-300 text-[10px] sm:text-xs font-medium rounded-full border border-slate-700">
-                  {{ featuredAddon.version || 'v1.0' }}
-                </span>
               </div>
 
               <NuxtLink :to="`/addon/${featuredAddon.id}`" class="block group/title">
@@ -117,9 +113,16 @@
               <div class="flex items-center space-x-3 text-xs sm:text-sm text-slate-300">
                 <span>By <strong class="text-blue-400 font-semibold">{{ featuredAddon.creator }}</strong></span>
                 <span class="text-slate-600">•</span>
-                <div class="flex items-center text-amber-400 font-bold space-x-1">
-                  <span>★ {{ featuredAddon.rating || '5.0' }}</span>
-                </div>
+                
+                <!-- TOMBOL LIKE REAL-TIME FEATURED -->
+                <button 
+                  @click="toggleLike(featuredAddon.id)" 
+                  class="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold transition border"
+                  :class="isLiked(featuredAddon.id) ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-rose-400'"
+                >
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <span>{{ getLikesCount(featuredAddon.id) }} Like</span>
+                </button>
               </div>
 
               <p class="text-slate-300 text-xs sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3">
@@ -142,7 +145,7 @@
           </div>
         </section>
 
-        <!-- KATEGORI FILTER TABS -->
+        <!-- KATEGORI TABS FILTER -->
         <div v-if="!isSearching" class="flex items-center space-x-2 sm:space-x-3 overflow-x-auto pb-3 sm:pb-4 scrollbar-none mb-4 sm:mb-8">
           <button 
             v-for="cat in categories" 
@@ -159,7 +162,7 @@
           </button>
         </div>
 
-        <!-- HEADER RESULT SEARCHING -->
+        <!-- SEARCH RESULT HEADER -->
         <div v-if="isSearching" class="flex items-center justify-between mb-6 pb-3 border-b border-slate-800">
           <div>
             <h2 class="text-lg sm:text-xl font-bold text-white">
@@ -197,7 +200,7 @@
                       class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
                     <div class="absolute inset-0 bg-gradient-to-t from-[#0d1424] via-transparent to-transparent opacity-60"></div>
-                    <span class="absolute bottom-1.5 left-1.5 sm:bottom-2.5 sm:left-2.5 bg-slate-950/90 backdrop-blur text-[9px] sm:text-[11px] font-bold text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">
+                    <span class="absolute bottom-1.5 left-1.5 sm:bottom-2.5 sm:left-2.5 bg-slate-950/90 backdrop-blur text-[9px] sm:text-[11px] font-bold text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/30">
                       {{ item.category }}
                     </span>
                   </div>
@@ -214,9 +217,16 @@
               </NuxtLink>
 
               <div class="relative z-20 p-2.5 sm:p-4 sm:pt-3 border-t border-slate-800/80 flex items-center justify-between mt-auto bg-slate-900/40">
-                <div class="flex items-center text-[10px] sm:text-xs text-amber-400 font-bold space-x-1">
-                  <span>★ {{ item.rating || '5.0' }}</span>
-                </div>
+                <!-- TOMBOL LIKE REAL-TIME KATALOG -->
+                <button 
+                  @click.stop="toggleLike(item.id)" 
+                  class="flex items-center space-x-1 text-[11px] font-bold transition px-2 py-1 rounded-lg border"
+                  :class="isLiked(item.id) ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-800 border-slate-700/60 text-slate-400 hover:text-rose-400'"
+                >
+                  <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <span>{{ getLikesCount(item.id) }}</span>
+                </button>
+
                 <a 
                   :href="item.downloadLink" 
                   target="_blank"
@@ -291,6 +301,7 @@ const user = ref(null);
 const showEditModal = ref(false);
 const editName = ref('');
 const editPhoto = ref('');
+const likesData = ref([]);
 
 const categories = ['Semua', 'Add-Ons', 'World', 'Texture Packs', 'Skin Packs', 'Mash-ups'];
 
@@ -310,6 +321,39 @@ const filteredAddons = computed(() => {
     return matchesSearch && matchesCategory;
   });
 });
+
+const loadAllLikes = async () => {
+  const { data } = await supabase.from('addon_likes').select('*');
+  if (data) {
+    likesData.value = data;
+  }
+};
+
+const getLikesCount = (addonId) => {
+  return likesData.value.filter(l => l.addon_id === addonId).length;
+};
+
+const isLiked = (addonId) => {
+  if (!user.value) return false;
+  return likesData.value.some(l => l.addon_id === addonId && l.user_email === user.value.email);
+};
+
+const toggleLike = async (addonId) => {
+  if (!user.value) return;
+
+  if (isLiked(addonId)) {
+    await supabase
+      .from('addon_likes')
+      .delete()
+      .eq('addon_id', addonId)
+      .eq('user_email', user.value.email);
+  } else {
+    await supabase.from('addon_likes').insert([
+      { addon_id: addonId, user_email: user.value.email }
+    ]);
+  }
+  await loadAllLikes();
+};
 
 const decodeJwt = (token) => {
   try {
@@ -436,6 +480,16 @@ onMounted(() => {
       editPhoto.value = user.value.picture;
     }
   }
+
+  loadAllLikes();
+
+  // Real-time listener Supabase untuk Like
+  supabase
+    .channel('public:addon_likes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'addon_likes' }, () => {
+      loadAllLikes();
+    })
+    .subscribe();
 
   if (process.client && !window.google) {
     const script = document.createElement('script');

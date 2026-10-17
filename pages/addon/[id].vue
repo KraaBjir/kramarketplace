@@ -10,7 +10,7 @@
 
       <div v-if="addon" class="space-y-10">
         
-        <!-- CARD DETAIL ADDON MEWAH -->
+        <!-- CARD DETAIL ADDON -->
         <div class="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 lg:p-10 shadow-2xl">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
@@ -24,10 +24,22 @@
               <h1 class="text-3xl font-black text-white">{{ addon.title }}</h1>
               <p class="text-xs text-slate-400">Dibuat oleh <strong class="text-blue-400">{{ addon.creator }}</strong></p>
               
-              <!-- JUMLAH AKUN YANG SUDAH DOWNLOAD -->
-              <div class="inline-flex items-center space-x-2 bg-blue-950/60 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs text-blue-300">
-                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span><strong>{{ downloadCount }}</strong> Akun telah mendownload</span>
+              <div class="flex flex-wrap items-center gap-3">
+                <!-- JUMLAH AKUN YANG SUDAH DOWNLOAD -->
+                <div class="inline-flex items-center space-x-2 bg-blue-950/60 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs text-blue-300">
+                  <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  <span><strong>{{ downloadCount }}</strong> Akun telah mendownload</span>
+                </div>
+
+                <!-- TOMBOL LIKE REAL-TIME -->
+                <button 
+                  @click="toggleLike" 
+                  class="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border"
+                  :class="userLiked ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-rose-400'"
+                >
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <span>{{ likesCount }} Like</span>
+                </button>
               </div>
 
               <p class="text-slate-300 text-sm leading-relaxed">{{ addon.description }}</p>
@@ -77,7 +89,6 @@
           <div class="space-y-6">
             <div v-for="item in mainComments" :key="item.id" class="space-y-3">
               
-              <!-- Komentar Induk -->
               <div class="bg-[#060913]/80 border border-slate-800 rounded-2xl p-4 space-y-3 hover:border-blue-500/40 transition-all duration-300">
                 <div class="flex items-center justify-between">
                   <button @click="viewUserProfile(getCommentUser(item).name, getCommentUser(item).picture)" class="flex items-center space-x-3 text-left hover:opacity-80 transition">
@@ -101,7 +112,6 @@
                   </div>
                 </div>
 
-                <!-- Mode Edit -->
                 <div v-if="editingCommentId === item.id" class="space-y-2 pt-1 pl-11">
                   <textarea v-model="editingText" rows="2" class="w-full bg-[#0d1424] text-sm text-slate-200 border border-blue-500 rounded-xl p-2.5 focus:outline-none"></textarea>
                   <div class="flex justify-end space-x-2">
@@ -197,6 +207,8 @@ const replyingToId = ref(null);
 const allComments = ref([]);
 const usersMap = ref({});
 const downloadCount = ref(0);
+const likesCount = ref(0);
+const userLiked = ref(false);
 const isSubmitting = ref(false);
 const selectedProfile = ref(null);
 
@@ -231,6 +243,36 @@ const loadComments = async () => {
   if (!error && data) {
     allComments.value = data;
   }
+};
+
+const loadLikes = async () => {
+  if (!addon) return;
+  const { data } = await supabase
+    .from('addon_likes')
+    .select('*')
+    .eq('addon_id', addon.id);
+
+  if (data) {
+    likesCount.value = data.length;
+    userLiked.value = user.value ? data.some(l => l.user_email === user.value.email) : false;
+  }
+};
+
+const toggleLike = async () => {
+  if (!user.value || !addon) return;
+
+  if (userLiked.value) {
+    await supabase
+      .from('addon_likes')
+      .delete()
+      .eq('addon_id', addon.id)
+      .eq('user_email', user.value.email);
+  } else {
+    await supabase.from('addon_likes').insert([
+      { addon_id: addon.id, user_email: user.value.email }
+    ]);
+  }
+  await loadLikes();
 };
 
 const mainComments = computed(() => {
@@ -368,5 +410,14 @@ onMounted(() => {
 
   loadComments();
   loadDownloadCount();
+  loadLikes();
+
+  // Listener Realtime Like Supabase
+  supabase
+    .channel(`public:addon_likes:${addon?.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'addon_likes', filter: `addon_id=eq.${addon?.id}` }, () => {
+      loadLikes();
+    })
+    .subscribe();
 });
 </script>
