@@ -54,7 +54,7 @@
             <span class="text-xs text-blue-400">({{ comments.length }})</span>
           </h2>
 
-          <!-- Form Input Komentar -->
+          <!-- Form Input Komentar Baru -->
           <div class="space-y-3 bg-[#060913] p-4 rounded-2xl border border-slate-800 focus-within:border-blue-500/80 transition duration-300">
             <textarea 
               v-model="newComment"
@@ -79,10 +79,10 @@
               <div 
                 v-for="item in comments" 
                 :key="item.id"
-                class="bg-[#060913]/80 border border-slate-800 rounded-2xl p-4 space-y-2 hover:border-blue-500/40 transition-all duration-300 transform hover:-translate-y-1"
+                class="bg-[#060913]/80 border border-slate-800 rounded-2xl p-4 space-y-3 hover:border-blue-500/40 transition-all duration-300 transform hover:-translate-y-1"
               >
                 <div class="flex items-center justify-between">
-                  <!-- Klik Profil Pengguna untuk Melihat Modal Profil -->
+                  <!-- Profil Pengguna Komentar -->
                   <button @click="viewUserProfile(getCommentUser(item).name, getCommentUser(item).picture)" class="flex items-center space-x-3 text-left hover:opacity-80 transition">
                     <img :src="getCommentUser(item).picture" :alt="getCommentUser(item).name" class="w-8 h-8 rounded-full border border-blue-400 object-cover" />
                     <div>
@@ -90,8 +90,34 @@
                       <span class="text-[10px] text-slate-500">{{ formatDate(item.created_at) }}</span>
                     </div>
                   </button>
+
+                  <!-- Tombol Edit & Hapus (Hanya muncul jika komentar milik pengguna yang sedang login) -->
+                  <div v-if="isMyComment(item)" class="flex items-center space-x-2">
+                    <button @click="startEditComment(item)" class="text-xs text-blue-400 hover:text-blue-300 transition">
+                      Edit
+                    </button>
+                    <span class="text-slate-600">•</span>
+                    <button @click="deleteComment(item.id)" class="text-xs text-red-400 hover:text-red-300 transition">
+                      Hapus
+                    </button>
+                  </div>
                 </div>
-                <p class="text-sm text-slate-300 pl-11 leading-relaxed">{{ item.text }}</p>
+
+                <!-- Tampilan Mode Edit Komentar -->
+                <div v-if="editingCommentId === item.id" class="space-y-2 pt-1 pl-11">
+                  <textarea 
+                    v-model="editingText" 
+                    rows="2"
+                    class="w-full bg-[#0d1424] text-sm text-slate-200 border border-blue-500 rounded-xl p-2.5 focus:outline-none"
+                  ></textarea>
+                  <div class="flex justify-end space-x-2">
+                    <button @click="editingCommentId = null" class="px-3 py-1 bg-slate-800 text-slate-300 text-xs rounded-lg">Batal</button>
+                    <button @click="saveEditComment(item.id)" class="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg">Simpan</button>
+                  </div>
+                </div>
+
+                <!-- Tampilan Teks Komentar Biasa -->
+                <p v-else class="text-sm text-slate-300 pl-11 leading-relaxed">{{ item.text }}</p>
               </div>
             </transition-group>
 
@@ -142,11 +168,15 @@ const downloadCount = ref(0);
 const isSubmitting = ref(false);
 const selectedProfile = ref(null);
 
+// State untuk Edit Komentar
+const editingCommentId = ref(null);
+const editingText = ref('');
+
 const SUPABASE_URL = "https://lulqcbwyuhrwonnkxhzp.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bHFjYnd5dWhyd29ubmt4aHpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTA1ODcsImV4cCI6MjA3NTc2NjU4N30.FjkYF7uqaEyQxwwIWPw6Sjw-mSxOd6vX9SoGjlSa2_I";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Memuat data profil pengguna dari tabel users untuk mencocokkan komentar
+// Memuat data profil dari tabel users
 const loadUsers = async () => {
   const { data } = await supabase.from('users').select('*');
   if (data) {
@@ -160,7 +190,7 @@ const loadUsers = async () => {
 
 const loadComments = async () => {
   if (!addon) return;
-  await loadUsers(); // Load profil user terbaru
+  await loadUsers();
 
   const { data, error } = await supabase
     .from('comments')
@@ -173,7 +203,7 @@ const loadComments = async () => {
   }
 };
 
-// Mengambil nama dan foto profil terbaru berdasarkan user_email (Fallback ke data lama jika user_email belum ada)
+// Mengambil nama & foto terbaru dari tabel users
 const getCommentUser = (item) => {
   if (item.user_email && usersMap.value[item.user_email]) {
     return {
@@ -185,6 +215,12 @@ const getCommentUser = (item) => {
     name: item.user_name,
     picture: item.user_photo
   };
+};
+
+// Cek apakah komentar ini milik pengguna yang sedang login
+const isMyComment = (item) => {
+  if (!user.value) return false;
+  return item.user_email === user.value.email || item.user_name === user.value.name;
 };
 
 const loadDownloadCount = async () => {
@@ -217,7 +253,7 @@ const addComment = async () => {
     .insert([
       {
         addon_id: addon.id,
-        user_email: user.value.email, // Menyimpan email acuan
+        user_email: user.value.email,
         user_name: user.value.name,
         user_photo: user.value.picture,
         text: newComment.value.trim()
@@ -230,6 +266,41 @@ const addComment = async () => {
   }
 
   isSubmitting.value = false;
+};
+
+// Mulai Edit Komentar
+const startEditComment = (item) => {
+  editingCommentId.value = item.id;
+  editingText.value = item.text;
+};
+
+// Simpan Hasil Edit Komentar
+const saveEditComment = async (commentId) => {
+  if (!editingText.value.trim()) return;
+
+  const { error } = await supabase
+    .from('comments')
+    .update({ text: editingText.value.trim() })
+    .eq('id', commentId);
+
+  if (!error) {
+    editingCommentId.value = null;
+    await loadComments();
+  }
+};
+
+// Hapus Komentar
+const deleteComment = async (commentId) => {
+  if (!confirm("Apakah kamu yakin ingin menghapus komentar ini?")) return;
+
+  const { error } = await supabase
+    .from('comments')
+    .delete()
+    .eq('id', commentId);
+
+  if (!error) {
+    await loadComments();
+  }
 };
 
 const viewUserProfile = (name, photo) => {
@@ -268,4 +339,4 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(30px);
 }
-</style>
+</style>s
