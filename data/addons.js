@@ -10,7 +10,7 @@ export const addonsData = [
     category: "Add-Ons",
     description: "Water. Earth. Fire. Air. Bend the elements in your own worlds with this official Add-On. Discover temples scattered across your worlds and learn bending techniques passed down through generations.",
     image: "/gmbraddon/AvatarLegends.png",
-    downloadLink: "https://link-download-anda.com/avatar-legends",
+    downloadLink: "https://safefileku.com/download/8WD1Ivjc7Zey4naO",
     isFeatured: true,
     isTrending: true,
     tags: ["Elemental", "Magic", "Adventure"]
