@@ -22,7 +22,7 @@ export const leaksData = [
     ]
   },
   {
-    id: 'the-hive',
+    id: 'thehive',
     title: 'The Hive BedWars: Season 5',
     subtitle: 'Treasure Wars · Hide and Seek · DeathRun',
     category: 'Server',
